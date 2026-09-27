@@ -7,14 +7,10 @@
 <style>
   html { color-scheme: dark; }
 
-  /* Deliberately NOT a flex centring box. A centred block re-measures as
-     lines are added, so both its top and left edges drift mid-session.
-     Instead the terminal is anchored: fixed left edge, fixed top edge, and
-     the text grows down and right from there. Nothing else ever moves. */
   body {
     margin: 0;
     min-height: 100vh;
-    min-height: 100dvh; /* the mobile-safe one; avoids the URL bar overshoot */
+    min-height: 100dvh;
     background: #1e1e1e;
     color: #d4d4d4;
     font-family: Consolas, "Courier New", monospace;
@@ -22,11 +18,10 @@
     line-height: 1.5;
     padding: clamp(28px, 10vh, 120px) clamp(20px, 6vw, 64px);
     box-sizing: border-box;
-    /* no 300ms double-tap-zoom delay; scrolling still works */
+
     touch-action: manipulation;
   }
 
-  /* Fixed width, so the left edge depends on the viewport and nothing else. */
   #term {
     width: 100%;
     max-width: 72ch;
@@ -41,19 +36,14 @@
     margin: 0;
   }
 
-  /* no-JS transcript gets the same measure as the terminal */
   pre.nojs { max-width: 72ch; margin: 0 auto; }
 
-  /* Narrow screens wrap hard at 16px, so drop the transcript a size. The
-     input above stays at 16px, which is what iOS measures before deciding to
-     zoom the whole page on focus. */
   @media (max-width: 480px) {
     body { font-size: 14px; }
   }
 
   .line { min-height: 1.5em; }
 
-  /* bash prompt: user@host, path, $ */
   .user { color: #4ec9b0; font-weight: 600; }
   .at   { color: #d4d4d4; }
   .host { color: #4ec9b0; font-weight: 600; }
@@ -61,28 +51,26 @@
   .dollar { color: #d4d4d4; }
   .cmd  { color: #dcdcaa; }
 
-  /* python REPL chevrons */
   .chevron { color: #569cd6; }
-  /* a prompt from a running program, e.g. send-message.py */
+
   .ask { color: #569cd6; }
-  /* ls colour for executables, the way LS_COLORS renders them */
+
   .exec { color: #23d18b; font-weight: 600; }
-  /* numbers (int results, literals) */
+
   .number { color: #b5cea8; }
-  /* built-in function / callable */
+
   .builtin { color: #dcdcaa; }
-  /* string literal */
+
   .string { color: #ce9178; }
-  /* punctuation: parens, commas */
+
   .punct { color: #d4d4d4; }
-  /* operators */
+
   .op { color: #d4d4d4; }
-  /* server log / dim asides */
+
   .dim { color: #808080; }
-  /* shell errors */
+
   .err { color: #f48771; }
 
-  /* the way onward, once the visitor is no longer being redirected */
   a.ret {
     color: #569cd6;
     text-decoration: underline;
@@ -91,11 +79,6 @@
   }
   a.ret:hover, a.ret:focus-visible { color: #fff; text-decoration-color: #fff; }
 
-  /* Blinking caret. Zero layout width on purpose: the caret used to sit
-     between the typed text and the grey autosuggestion as an 8px inline
-     block, which pushed the suggestion a whole character to the right. Now
-     it draws from a pseudo-element and occupies no space, so the ghost sits
-     flush against what was typed. */
   .caret {
     display: inline-block;
     position: relative;
@@ -116,12 +99,10 @@
   @keyframes blink { 50% { opacity: 0; } }
   @media (prefers-reduced-motion: reduce) { .caret::before { animation: none; } }
 
-  /* fish-style inline autosuggestion, greyed out ahead of the caret. Sits
-     above the full-viewport input on touch so a tap can land on it. */
   .ghost {
     color: #5a5a5a;
     position: relative;
-    z-index: 6;   /* above #entry.touch at 5, which covers the viewport */
+    z-index: 6;
     cursor: pointer;
   }
 
@@ -139,14 +120,6 @@
     margin: 0.4em 0;
   }
 
-  /* ---- the 67 ---------------------------------------------------- */
-  /* Two copies of the terminal, each clipped to one half of the viewport so
-     they read as a single page torn down the middle.
-
-     The clip is on the OUTER element and the translate on the INNER one.
-     That separation matters: a transform applies to the clipped result, so
-     putting both on one element would drag the split line up and down with
-     the content and open a gap down the middle of the page. */
   #sf {
     position: fixed;
     inset: 0;
@@ -162,8 +135,7 @@
   .sf-half.right { clip-path: inset(0 0 0 50%); }
 
   .sf-copy { animation: bob67 700ms ease-in-out infinite alternate; }
-  /* alternate-reverse runs the same keyframes backwards, so the right half is
-     the exact mirror of the left at every instant -- opposite amplitude */
+
   .sf-half.right .sf-copy { animation-direction: alternate-reverse; }
 
   @keyframes bob67 {
@@ -174,7 +146,6 @@
     .sf-copy { animation: none; }
   }
 
-  /* skip hint */
   #hint {
     position: fixed;
     right: 16px;
@@ -188,39 +159,26 @@
   }
   #hint.gone { opacity: 0; }
 
-  /* The real input that captures typing. We render its value ourselves so the
-     caret stays the block from the animation, but a real input is what gets
-     mobile keyboards, paste and IME for free.
-
-     On touch devices it is stretched over the whole viewport rather than left
-     as a 1px point in the corner. iOS will not reliably raise the keyboard
-     for an element it considers invisible, and a tap that lands on a real,
-     visible text field opens it the way any other form field does. */
   #entry {
     position: fixed;
     top: 0; left: 0;
     width: 1px; height: 1px;
     padding: 0; border: 0;
     background: transparent;
-    /* Transparent text rather than opacity: 0. Chromium on Android raises the
-       keyboard for a focused field and then immediately dismisses it again
-       when the field is not painted -- which is exactly the flash the IME
-       does with opacity: 0. Transparent colours keep it a genuinely painted
-       field with nothing to see. */
+
     color: transparent;
     -webkit-text-fill-color: transparent;
     caret-color: transparent;
     outline: none;
-    font-size: 16px; /* stops iOS zooming on focus */
+    font-size: 16px;
   }
   #entry.touch {
     width: 100%;
     height: 100%;
-    z-index: 5;  /* stays under the 67 overlay, which sits at 10 */
+    z-index: 5;
     cursor: text;
   }
 
-  /* accessible transcript for screen readers / no-JS */
   .sr-only {
     position: absolute;
     width: 1px; height: 1px;
@@ -237,9 +195,6 @@
 
 <pre id="term" aria-hidden="true"></pre>
 
-<!-- Command output is mirrored here so the shell is usable with a screen
-     reader; the animated terminal itself stays aria-hidden to avoid
-     announcing every keystroke. -->
 <div id="live" class="sr-only" role="status" aria-live="polite"></div>
 
 <input id="entry" type="text" aria-label="Command input"
@@ -270,9 +225,6 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
   var TRIMPTA_TO = "https://trimpta.com/";
   var SURPRISE_TO = "https://files.catbox.moe/kd5suc.mp4";
 
-  /* Where ./send-message.py posts to. The key is public by design -- it is an
-     alias for the inbox, not a secret -- so it living in the page source is
-     fine. Left empty, the flow still runs but only pretends to send. */
   var WEB3FORMS_KEY = "c1fe7c75-4db3-41d3-bbaa-467eef7e7126";
   var WEB3FORMS_URL = "https://api.web3forms.com/submit";
 
@@ -282,24 +234,13 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
   var entry = document.getElementById("entry");
   var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  /* A touch-first device: no hover, coarse pointer. Deliberately not
-     `'ontouchstart' in window`, which is also true on touchscreen laptops
-     that are being driven with a mouse. */
   var touch = !!(window.matchMedia &&
     window.matchMedia("(hover: none) and (pointer: coarse)").matches);
 
-  /* 150 wpm at the usual 5-characters-per-word => 750 chars/min => 80ms/char */
   var CHAR_MS = Math.round(60000 / (150 * 5));
 
-  /* Enter fast-forwards instead of cutting straight to the end. Every stage
-     still plays, just squeezed to this one short beat, which lands whatever
-     is left of the intro in roughly 0.2s. */
   var FAST_STEP_MS = 14;
 
-  /* The wait between a >>> landing and the line being typed into it. It
-     absorbs the pause that used to sit in front of the prompt, so the overall
-     pace is untouched and the only difference is that the prompt now arrives
-     the instant the previous output finishes, the way a real REPL's does. */
   var PROMPT_MS = 520;
 
   var timers = new Map();
@@ -308,10 +249,6 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
   var redirected = false;
   var redirectTimer = null;
 
-  /* ---- timing helpers -------------------------------------------- */
-
-  // Every delay is cancellable so a skip can drain the whole queue at once.
-  // In fast mode each one is squeezed to the same short beat instead.
   function sleep(ms) {
     if (reduce || skipped) { return Promise.resolve(); }
     if (fast) { ms = FAST_STEP_MS; }
@@ -330,8 +267,6 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
     if (redirectTimer) { clearTimeout(redirectTimer); redirectTimer = null; }
   }
 
-  /* ---- skipping the intro ----------------------------------------- */
-
   function skip() {
     if (redirected) { return; }
 
@@ -341,35 +276,23 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
       if (hint) { hint.classList.add("gone"); }
     }
 
-    // Pressing anything cancels a redirect that is already pending. The
-    // listeners stay armed so this also works in the quiet gap between the
-    // last line and the navigation.
     if (redirectTimer) {
       cancelRedirect();
       enterShell();
     }
   }
 
-  /* Enter is the polite version: run the rest of the intro at speed rather
-     than jumping to the end, so you still watch it land. */
   function fastForward() {
     if (fast || skipped || redirected) { return; }
 
-    // Nothing left to speed up, and a redirect is already pending -- so this
-    // is just another keypress, and any keypress means stay.
     if (redirectTimer) { skip(); return; }
 
     fast = true;
-    // Release whatever stage is already waiting. A sleep that was scheduled
-    // before the keypress is holding its original duration -- often the 650ms
-    // opening beat -- and would otherwise sit in front of the fast part and
-    // blow the whole budget.
+
     drain();
     if (hint) { hint.classList.add("gone"); }
   }
 
-  /* Single entry point for the skip listeners, since Enter needs routing
-     somewhere other than skip(). Pointer and wheel events carry no key. */
   function onSkipInput(e) {
     if (e && e.key === "Enter") { fastForward(); } else { skip(); }
   }
@@ -377,8 +300,7 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
   function armSkip() {
     window.addEventListener("keydown", onSkipInput);
     window.addEventListener("pointerdown", onSkipInput);
-    // touchstart as well as pointerdown: on some mobile browsers a tap that
-    // the page treats as a scroll never delivers the pointer event at all
+
     window.addEventListener("touchstart", onSkipInput, { passive: true });
     window.addEventListener("wheel", onSkipInput, { passive: true });
   }
@@ -388,8 +310,6 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
     window.removeEventListener("touchstart", onSkipInput);
     window.removeEventListener("wheel", onSkipInput);
   }
-
-  /* ---- DOM helpers ----------------------------------------------- */
 
   var PROMPT =
     '<span class="user">trimpta</span><span class="at">@</span>' +
@@ -406,11 +326,9 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
     if (withGhost) {
       ghost = document.createElement("span");
       ghost.className = "ghost";
-      /* Tapping the grey suggestion accepts it. That is the only way to
-         autocomplete on a phone -- there is no Tab key -- and it is nicer
-         than hijacking the return key. */
+
       ghost.addEventListener("pointerdown", function (e) {
-        e.preventDefault();   // keep the keyboard up and focus where it is
+        e.preventDefault();
         acceptSuggestion();
         try { entry.focus({ preventScroll: true }); } catch (err) { entry.focus(); }
       });
@@ -421,31 +339,18 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
     return { line: d, input: input, caret: caret, ghost: ghost };
   }
 
-  function promptLine() {
+  var REPL = '<span class="chevron">&gt;&gt;&gt;</span> ';
+
+  function makeLine(html, ghost) {
     var d = document.createElement("div");
     d.className = "line";
-    d.innerHTML = PROMPT;
-    return attachInput(d, false);
+    d.innerHTML = html;
+    return attachInput(d, ghost);
   }
 
-  function replLine() {
+  function output(parts, silent) {
     var d = document.createElement("div");
     d.className = "line";
-    d.innerHTML = '<span class="chevron">&gt;&gt;&gt;</span> ';
-    return attachInput(d, false);
-  }
-
-  /* the one prompt the visitor can actually type at */
-  function shellLine() {
-    var d = document.createElement("div");
-    d.className = "line";
-    d.innerHTML = PROMPT;
-    return attachInput(d, true);
-  }
-
-  function output(parts, cls, silent) {
-    var d = document.createElement("div");
-    d.className = "line" + (cls ? " " + cls : "");
     paint(d, parts);
     hang(d, parts);
     term.appendChild(d);
@@ -454,9 +359,6 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
     return d;
   }
 
-  /* Give an indented line a hanging indent, so that when it wraps on a narrow
-     screen the continuation sits under the line's own column instead of
-     snapping back to column zero. */
   function hang(d, parts) {
     var n = leadingSpaces(parts);
     if (n > 0) {
@@ -479,11 +381,8 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
     return n;
   }
 
-  /* For output that arrives in bulk, so a screen reader gets one summary
-     instead of being read thirty lines of man page one line at a time. */
   function announce(text) { if (live) { live.textContent = text; } }
 
-  /* parts is [[text, className], ...]; a bare string means default styling. */
   function paint(parent, parts) {
     if (typeof parts === "string") { parts = [[parts, null]]; }
     parts.forEach(function (part) {
@@ -495,25 +394,13 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
     return parent;
   }
 
-  /* A dim label and a value. Angle brackets are opt-in: they are the man-page
-     convention for an address, which is not a URL and so is not obviously
-     something you can follow. Actual URLs are links already and read better
-     without punctuation wrapped around them. */
   function entryLine(label, text, href, brackets) {
     var d = document.createElement("div");
     d.className = "line";
-    hang(d, [["  ", null]]);   // wrapped continuations stay in the entry's column
+    hang(d, [["  ", null]]);
     d.appendChild(document.createTextNode("  " + pad(label, 10)));
     if (brackets) { d.appendChild(span("<", "dim")); }
-    var value = href ? document.createElement("a") : span("", "ret");
-    value.className = "ret";
-    if (href) {
-      value.href = href;
-      value.target = "_blank";
-      value.rel = "noopener";
-    }
-    value.textContent = text;
-    d.appendChild(value);
+    d.appendChild(linkNode(text, href));
     if (brackets) { d.appendChild(span(">", "dim")); }
     term.appendChild(d);
     if (live) { live.textContent = label + " " + text; }
@@ -538,7 +425,6 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
     return a;
   }
 
-  /* A line assembled from mixed strings and nodes. */
   function richLine(items) {
     var d = document.createElement("div");
     d.className = "line";
@@ -577,17 +463,6 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
     return s;
   }
 
-  /* ---- the typewriter -------------------------------------------- */
-
-  /* Type colourised source a character at a time, so the words light up as
-     they are "typed" rather than recolouring once the line is done.
-
-     The parts are flattened into one per-character plan first. Typing each
-     part in turn looked correct but was not: a part of a single character
-     has nothing left to wait for, so it resolved with no delay at all and
-     an expression like `5 + 1, 5 - 1 + 3` -- all one-char tokens -- appeared
-     in one go. One plan means the gap between characters is uniform no
-     matter how the line is split into coloured spans. */
   function type(slot, parts) {
     if (typeof parts === "string") { parts = [[parts, "cmd"]]; }
 
@@ -608,8 +483,7 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
         plan[i].el.textContent += plan[i].ch;
         i++;
         scrollDown();
-        // In fast mode the rest of the line lands in one go; the pacing then
-        // comes from the stage delays between lines, not per character.
+
         if (skipped || fast) {
           for (var j = i; j < plan.length; j++) { plan[j].el.textContent += plan[j].ch; }
           resolve();
@@ -621,16 +495,14 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
     });
   }
 
-  /* Type a command, drop the caret, and pretend to hit Return. */
   function submit(slot, text) {
     return type(slot, text).then(function () {
-      return sleep(reduce ? 0 : 90 + Math.random() * 120); // Enter latency
+      return sleep(90 + Math.random() * 120);
     }).then(function () {
       dropCaret(slot);
     });
   }
 
-  /* Command fragments, mirroring the syntax highlighting classes. */
   function ordCall() {
     return [["ord", "builtin"], ["(", "punct"], ['"3"', "string"], [")", "punct"]];
   }
@@ -646,21 +518,15 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
             [" ", null], ["7", "number"], [")", "punct"]];
   }
 
-  /* ---- redirect --------------------------------------------------- */
-
   function redirect(to) {
     if (redirected) { return; }
     redirected = true;
     cancelRedirect();
     drain();
-    // assign, not replace: the visitor keeps ord3.com in their history
+
     window.location.href = to || REDIRECT_TO;
   }
 
-  /* ---- the shell -------------------------------------------------- */
-
-  /* Delay that is NOT tied to the intro's `skipped` flag, so the shell can
-     still pace its own output after the visitor has skipped the animation. */
   function pause(ms) {
     return new Promise(function (r) { setTimeout(r, reduce ? 0 : ms); });
   }
@@ -693,10 +559,9 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
     scrollDown();
   }
 
-  /* A tiny read-only filesystem. Each file renders itself. */
   var FILES = {
     "about.txt": function () {
-      /* Mirrors the copy on shreevardhan.net, "here" and all. */
+
       output([["Shreevardhan T V", null]]);
       output([["", null]]);
       richLine([
@@ -726,9 +591,7 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
       output([["See also: ord3", "dim"]]);
     },
     "surprise-me": function () {
-      // It is a binary, so catting it gives the usual mess rather than
-      // anything readable: an ELF header followed by the CP437 high
-      // characters, which is what this looks like in a terminal.
+
       output([["ELF\u263a\u263b\u2665\u2666\u2663\u2660\u2022\u25d8\u25cb\u25d9" +
                "\u2642\u2640\u266a\u266b\u263c\u25ba\u25c4\u2195\u203c\u00b6\u00a7" +
                "\u25ac\u21a8\u2191\u2193\u2192\u2190\u221f\u2194\u25b2\u25bc\u2302" +
@@ -772,10 +635,6 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
 
   function fileNames() { return Object.keys(FILES); }
 
-  /* ---- ./send-message.py ------------------------------------------- */
-
-  /* Web3Forms nests its message under body on a 4xx but not on a 429, so dig
-     it out of either shape rather than trusting one. */
   function w3fMessage(d) {
     if (!d) { return ""; }
     if (typeof d.message === "string") { return d.message; }
@@ -783,8 +642,6 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
     return "";
   }
 
-  /* Asks the three questions the .py file claims to ask, then sends — or, with
-     no access key configured, says honestly that nothing left the browser. */
   function messageFlow() {
     var answers = {};
     return question("enter name: ").then(function (name) {
@@ -804,18 +661,12 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
     });
   }
 
-  /* Wraps the flow so a ^C (expected, already drawn) is quiet but an
-     unexpected failure says so, rather than swallowing the error and leaving
-     "sending..." on screen with no explanation. */
-  /* `cat` with no argument. The error above it is what cat actually does; the
-     picture below is the joke. Ten cats are checked in, so nothing leaves the
-     site to fetch one. */
   var CAT_COUNT = 10;
   var lastCat = 0;
 
   function pickCat() {
     var n = 1 + Math.floor(Math.random() * CAT_COUNT);
-    if (n === lastCat) { n = (n % CAT_COUNT) + 1; }   // never twice running
+    if (n === lastCat) { n = (n % CAT_COUNT) + 1; }
     lastCat = n;
     return n;
   }
@@ -830,16 +681,10 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
     return "[" + s + "]";
   }
 
-  /* A wget-shaped line, redrawn in place the way a real one is. The files are
-     only tens of kilobytes, so the bar is paced to stay up for a moment
-     instead of flashing past, and the picture is only shown once it has
-     genuinely loaded. */
   var CAT_MIN_MS = 800;
 
   function catPicture() {
-    // Resolves when the picture is up. Returning a promise matters: submitEntry
-    // only restores the prompt once it settles, and without that the prompt
-    // would land between the progress bar and the image.
+
     return new Promise(function (resolve) {
     var n = pickCat();
     var src = "cats/cat-" + n + ".jpg";
@@ -870,13 +715,13 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
       var size = "";
       try {
         var abs = src;
-        try { abs = new URL(src, window.location.href).href; } catch (e2) { /* relative */ }
+        try { abs = new URL(src, window.location.href).href; } catch (e2) {  }
         var hits = window.performance.getEntriesByName(abs);
         var entry = hits[hits.length - 1];
         if (entry && entry.encodedBodySize) {
           size = (entry.encodedBodySize / 1024).toFixed(1) + "K  ";
         }
-      } catch (e3) { /* no resource timing; drop the size rather than lie */ }
+      } catch (e3) {  }
       draw(100, size + "in " + secs + "s");
 
       var holder = document.createElement("div");
@@ -884,7 +729,7 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
       var img = document.createElement("img");
       img.className = "catpic";
       img.alt = "a cat";
-      img.onload = scrollDown;   // the row grows once the image lands
+      img.onload = scrollDown;
       img.src = src;
       holder.appendChild(img);
       term.appendChild(holder);
@@ -936,8 +781,6 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
 
     output([["sending...", "dim"]]);
 
-    /* A request that hangs would leave busy set and swallow every keystroke,
-       so it gives up rather than freezing the shell. */
     var ac = typeof AbortController !== "undefined" ? new AbortController() : null;
     var timer = setTimeout(function () { if (ac) { ac.abort(); } }, 15000);
 
@@ -961,7 +804,7 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
       clearTimeout(timer);
       return r.text().then(function (body) {
         var d = {};
-        try { d = JSON.parse(body); } catch (e) { /* probably an html error page */ }
+        try { d = JSON.parse(body); } catch (e) {  }
         if (r.ok) {
           output([["sent. thanks.", null]]);
         } else {
@@ -1037,10 +880,7 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
       name: "ls",
       desc: "list the files",
       run: function () {
-        // One per line: the column layout wrapped badly on a phone, and the
-        // names were too long for the columns to line up anyway. Colour is
-        // per file type, the way ls does it -- executables green, everything
-        // else left alone.
+
         fileNames().forEach(function (f) {
           output([[f, isExecutable(f) ? "exec" : null]]);
         });
@@ -1057,7 +897,7 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
           output([["usage: cat <file>  --  see `ls`", "dim"]]);
           return catPicture();
         }
-        // accept ./surprise-me as well as surprise-me
+
         var name = args[0].replace(/^\.\//, "");
         if (!Object.prototype.hasOwnProperty.call(FILES, name)) {
           output([["cat: " + args[0] + ": No such file or directory", "err"]]);
@@ -1074,13 +914,13 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
         var start = history.length > 20 ? history.length - 20 : 0;
         if (start > 0) { output([["\u2026", "dim"]]); }
         for (var i = start; i < history.length; i++) {
-          output([[pad(String(i + 1), 5) + history[i], "dim"]], null, true);
+          output([[pad(String(i + 1), 5) + history[i], "dim"]], true);
         }
         announce(history.length + " commands run this session: " +
                  history.slice(start).join(", "));
       }
     },
-    /* A file, not a command: `ls` finds it, `./` runs it. */
+
     {
       name: "./send-message.py",
       desc: "",
@@ -1117,8 +957,6 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
       }
     },
 
-    /* Easter eggs, deliberately absent from `help` and from the
-       autosuggestions -- you have to know to try them. */
     {
       name: "67",
       alias: "sixseven",
@@ -1142,16 +980,13 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
   ];
 
   var shellMode = false;
-  var busy = false;       // a command is running; keystrokes are discarded
-  var active = null;      // the prompt line currently accepting input
-  var ask = null;         // set while a program is awaiting a line of input
-  var history = [];       // commands run this session
+  var busy = false;
+  var active = null;
+  var ask = null;
+  var history = [];
   var histIdx = 0;
   var draft = "";
 
-  /* Commands may be more than one word (`surprise me`), so try the longest
-     matching name before falling back to shorter ones. An alias lets the
-     first word work on its own too. */
   function parseCommand(words) {
     for (var n = Math.min(words.length, 3); n >= 1; n--) {
       var name = words.slice(0, n).join(" ");
@@ -1169,21 +1004,10 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
     return COMMANDS.filter(function (c) { return !c.hidden; });
   }
 
-  /* Fish-style autosuggestion: the rest of the best matching command, drawn
-     greyed out ahead of the caret. On an empty line it offers `help`, which
-     is the one thing a visitor who skipped the intro needs to know. */
-  /* Fish-style autosuggestion: the rest of the best matching command, drawn
-     greyed out ahead of the caret. On an empty line it offers `help`, which
-     is the one thing a visitor who skipped the intro needs to know. */
-  /* A file is executable if there is a command that runs it, so "is this
-     runnable" and "does ls colour it green" can never disagree. */
   function isExecutable(name) {
     return !!parseCommand(["./" + name]);
   }
 
-  /* Commands whose argument is a filename. `cat` offers everything; `python3`
-     only offers python files, since suggesting one it cannot run just leads
-     to an error. */
   var FILE_ARG_COMMANDS = {
     "cat": function () { return true; },
     "python3": function (name) { return /\.py$/.test(name); }
@@ -1197,22 +1021,18 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
     return hit ? hit.slice(partial.length) : "";
   }
 
-  /* Either a bare path being typed (./ or .) or the argument of a command that
-     takes a file. Both complete against the same list. */
   function completePath(partial, accept) {
     return completeFile(partial.indexOf("./") === 0 ? partial.slice(2) : partial,
                         accept);
   }
 
   function suggestion(value) {
-    if (ask) { return ""; }   // a question is not a command line
+    if (ask) { return ""; }
     if (value === "") { return shellMode ? "help" : ""; }
 
-    // typing a path rather than a command
     if (value === ".") { return "/"; }
     if (value.indexOf("./") === 0) { return completePath(value); }
 
-    // the argument of a command that takes a file
     var words = value.split(/\s+/);
     if (words.length > 1 &&
         Object.prototype.hasOwnProperty.call(FILE_ARG_COMMANDS, words[0])) {
@@ -1243,18 +1063,14 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
 
   function focusEntry() {
     if (!shellMode) { return; }
-    // On touch the field covers the page and is genuinely painted, so a tap
-    // focuses it natively -- the one route a mobile browser reliably raises
-    // the keyboard for. Calling focus() here as well would race that, and a
-    // programmatic focus landing before the IME has finished opening is
-    // another way to get it dismissed again.
+
     if (touch) { return; }
     if (document.activeElement === entry) { return; }
     try { entry.focus({ preventScroll: true }); } catch (e) { entry.focus(); }
   }
 
   function promptNew() {
-    active = shellLine();
+    active = makeLine(PROMPT, true);
     busy = false;
     entry.value = "";
     histIdx = history.length;
@@ -1263,10 +1079,6 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
     focusEntry();
   }
 
-  /* ---- programs that ask questions --------------------------------- */
-
-  /* A line that is not the shell prompt: just a question and an answer, the
-     way input() works in a terminal. */
   function askLine(label) {
     var d = document.createElement("div");
     d.className = "line";
@@ -1274,14 +1086,11 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
     return attachInput(d, false);
   }
 
-  /* Resolves with the next line typed. Rejects on ^C, which is what keeps a
-     half-finished flow from trapping the visitor in question after
-     question with no way back to the prompt. */
   function question(label) {
     return new Promise(function (resolve, reject) {
       ask = { resolve: resolve, reject: reject };
       active = askLine(label);
-      busy = false;            // the line accepts input again
+      busy = false;
       entry.value = "";
       renderEntry();
       focusEntry();
@@ -1298,9 +1107,6 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
   function onEntryKey(e) {
     if (!shellMode) { return; }
 
-    // While a command is running the line is not accepting input at all,
-    // so swallow every keystroke rather than letting it pile up and
-    // scribble over the running command's echo.
     if (busy) { e.preventDefault(); return; }
 
     if (e.key === "Enter") {
@@ -1310,7 +1116,7 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
       e.preventDefault();
       acceptSuggestion();
     } else if (e.key === "ArrowRight") {
-      // at the end of the line, right arrow accepts the suggestion, like fish
+
       if (acceptSuggestion()) { e.preventDefault(); }
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
@@ -1344,8 +1150,6 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
     dropCaret(active);
     active.line.appendChild(span("^C", "dim"));
 
-    // If a program is sitting on this line, cancelling the line cancels it.
-    // Without this the flow would keep asking questions with no way out.
     if (ask) {
       var pending = ask;
       ask = null;
@@ -1364,8 +1168,6 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
   function submitEntry() {
     if (busy) { return; }
 
-    // A program asked for a line rather than the shell: hand it the answer
-    // instead of trying to run it as a command.
     if (ask) {
       var pending = ask;
       ask = null;
@@ -1403,12 +1205,8 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
       return;
     }
 
-    // The line stops accepting input for the duration of the command.
     busy = true;
 
-    // a command that takes over the screen (clear, replay, exit) returns
-    // false and is responsible for whatever comes next; an async one
-    // (ping) returns a promise of the same
     var result = parsed.cmd.run(parsed.args, command);
     if (result && typeof result.then === "function") {
       result.then(function (keep) { if (keep !== false) { promptNew(); } });
@@ -1416,8 +1214,6 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
       promptNew();
     }
   }
-
-  /* ---- entering the shell ----------------------------------------- */
 
   function enterShell() {
     if (shellMode) { return; }
@@ -1427,88 +1223,75 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
     disarmSkip();
     if (hint) { hint.classList.add("gone"); }
     promptNew();
-    // clicking anywhere in the terminal puts the cursor back
+
     window.addEventListener("pointerdown", focusEntry);
   }
 
-  /* ---- the intro session ------------------------------------------ */
-
   function session() {
-    return sleep(reduce ? 0 : 650)
+    return sleep(650)
       .then(function () {
-        var sh = promptLine();
-        // Type it and press Return, and only then let the interpreter take a
-        // moment to start. The pause has to sit after the caret drops: put it
-        // before, and Return and the banner land on the same frame, so the
-        // wait reads as hesitation mid-command instead of as a program
-        // starting up.
+        var sh = makeLine(PROMPT, false);
+
         return submit(sh, "python3").then(function () {
-          return sleep(reduce ? 0 : 500);
+          return sleep(500);
         });
       })
       .then(function () {
-        // The real banner, with the Windows build line swapped for the Linux
-        // one this fake shell is pretending to be.
+
         output([["Python 3.14.6 (main, Jun 10 2026, 10:26:10) " +
                  "[GCC 13.3.0] on linux", null]]);
         output([['Type "help", "copyright", "credits" or "license" ' +
                  "for more information.", null]]);
       })
       .then(function () {
-        var r = replLine();
-        return sleep(reduce ? 0 : PROMPT_MS).then(function () {
+        var r = makeLine(REPL, false);
+        return sleep(PROMPT_MS).then(function () {
           return type(r, ordCall());
         }).then(function () {
           dropCaret(r);
-          return sleep(reduce ? 0 : 300);
+          return sleep(300);
         });
       })
       .then(function () {
         output([["51", "number"]]);
       })
       .then(function () {
-        var r = replLine();
-        return sleep(reduce ? 0 : PROMPT_MS).then(function () {
+        var r = makeLine(REPL, false);
+        return sleep(PROMPT_MS).then(function () {
           return type(r, arithmetic());
         }).then(function () {
           dropCaret(r);
-          return sleep(reduce ? 0 : 300);
+          return sleep(300);
         });
       })
       .then(function () {
         output(tuple67());
       })
       .then(function () {
-        var r = replLine();
-        return sleep(reduce ? 0 : PROMPT_MS).then(function () {
+        var r = makeLine(REPL, false);
+        return sleep(PROMPT_MS).then(function () {
           return submit(r, "exit()");
         }).then(function () {
-          return sleep(reduce ? 0 : 260);
+          return sleep(260);
         });
       })
       .then(function () {
-        var sh = promptLine();
+        var sh = makeLine(PROMPT, false);
         return submit(sh, "python3 -m http.server 80").then(function () {
-          return sleep(reduce ? 0 : 520);
+          return sleep(520);
         });
       })
       .then(function () {
         output([["Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...", "dim"]]);
-        return sleep(reduce ? 0 : 900);
+        return sleep(900);
       })
       .then(function () {
-        // They interrupted at some point -- skipped, or fast-forwarded with
-        // Enter. Either way, stay on the page for good.
+
         if (skipped || fast) { enterShell(); return; }
         redirectTimer = setTimeout(redirect, reduce ? 1500 : 1100);
       });
   }
 
-  /* ---- the 67 ----------------------------------------------------- */
-
-  /* Snapshot the terminal into two clipped halves and let them bob out of
-     phase. The original is hidden rather than removed so the shell's DOM
-     keeps working underneath; the overlay is decorative. */
   function start67() {
     if (document.getElementById("sf")) { return; }
 
@@ -1523,7 +1306,7 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
       var copy = term.cloneNode(true);
       copy.removeAttribute("id");
       copy.className = "sf-copy";
-      // land the copy exactly on top of where the original sits
+
       copy.style.position = "absolute";
       copy.style.top = rect.top + "px";
       copy.style.left = rect.left + "px";
@@ -1544,8 +1327,6 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
     term.style.visibility = "";
   }
 
-  /* ---- replay ------------------------------------------------------ */
-
   function replay() {
     shellMode = false;
     skipped = false;
@@ -1561,18 +1342,13 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
     session();
   }
 
-  /* ---- the "you came back" state ----------------------------------- */
-
-  /* Print a finished line without animating it. */
-  function staticLine(kind, parts) {
-    var slot = kind === "repl" ? replLine() : promptLine();
+  function staticLine(html, parts) {
+    var slot = makeLine(html, false);
     paint(slot.input, parts);
     dropCaret(slot);
     return slot;
   }
 
-  /* Reached when the visitor returns to ord3.com: show the transcript,
-     but do NOT redirect again -- that would make Back a trap. */
   function renderStatic() {
     skipped = true;
     disarmSkip();
@@ -1580,35 +1356,27 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
     if (hint) { hint.classList.add("gone"); }
     term.innerHTML = "";
 
-    staticLine("shell", [["python3", "cmd"]]);
-    staticLine("repl", ordCall());
+    staticLine(PROMPT, [["python3", "cmd"]]);
+    staticLine(REPL, ordCall());
     output([["51", "number"]]);
-    staticLine("repl", arithmetic());
+    staticLine(REPL, arithmetic());
     output(tuple67());
-    staticLine("repl", [["exit()", "cmd"]]);
-    staticLine("shell", [["python3 -m http.server 80", "cmd"]]);
+    staticLine(REPL, [["exit()", "cmd"]]);
+    staticLine(PROMPT, [["python3 -m http.server 80", "cmd"]]);
     output([["Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...", "dim"]]);
 
     enterShell();
   }
 
-  /* ---- boot -------------------------------------------------------- */
-
   var returning = false;
 
-  // Returning via Back is detected from the navigation type alone -- no
-  // storage involved. A plain reload is treated as a fresh visit, which is
-  // what someone typing ord3.com into the bar should get. bfcache restores
-  // are caught by the pageshow handler below.
   try {
     var nav = window.performance && performance.getEntriesByType
       ? performance.getEntriesByType("navigation")[0]
       : null;
     if (nav && nav.type === "back_forward") { returning = true; }
-  } catch (e) { /* ignore */ }
+  } catch (e) {  }
 
-  // bfcache restore: the DOM is untouched and the redirect already fired,
-  // so just make sure nothing is left mid-animation.
   window.addEventListener("pageshow", function (e) {
     if (e.persisted) { renderStatic(); }
   });
@@ -1617,9 +1385,6 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
   entry.addEventListener("input", onEntryInput);
   entry.addEventListener("keydown", onEntryKey);
 
-  /* A terminal owns the keyboard. If the field loses focus the caret would go
-     on blinking while every keypress went nowhere, so take focus back. Left
-     alone on touch, where blurring is how the soft keyboard is dismissed. */
   entry.addEventListener("blur", function () {
     if (touch || !shellMode || redirected) { return; }
     setTimeout(function () {
@@ -1629,10 +1394,6 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
     }, 0);
   });
 
-  /* On mobile the soft keyboard shrinks the visual viewport rather than the
-     window, so pull the prompt back into sight when it does -- but only when
-     it is genuinely out of view. Scrolling underneath the keyboard while it
-     is still animating open is another way to get it dismissed again. */
   function keepVisible() {
     if (!active || !active.line || !active.line.getBoundingClientRect) { return; }
     var r = active.line.getBoundingClientRect();
@@ -1648,7 +1409,7 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
 
   if (touch) {
     entry.classList.add("touch");
-    // there is no Escape key to reach for
+
     if (hint) { hint.textContent = "tap anywhere to skip"; }
   }
 
@@ -1663,3 +1424,4 @@ Serving HTTP on 0.0.0.0 port 80 (http://0.0.0.0:80/) ...
 
 </body>
 </html>
+
